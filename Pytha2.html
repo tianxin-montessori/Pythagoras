@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- 1. 修改網頁標題 -->
+    <title>畢氏定理-不等邊直角三角形嵌板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @font-face {
+            font-family: 'jf-open-huninn';
+            src: url('https://cdn.jsdelivr.net/gh/marsnow/open-huninn-font@1.1/font/jf-openhuninn.woff') format('woff'),
+                 url('https://cdn.jsdelivr.net/gh/marsnow/open-huninn-font@1.1/font/jf-openhuninn.ttf') format('truetype');
+            font-weight: normal; font-style: normal; font-display: swap;
+        }
+
+        body {
+            touch-action: none;
+            overflow: hidden;
+            background-color: #d8ebef;
+            font-family: 'jf-open-huninn', sans-serif;
+            color: #4aabc4;
+            letter-spacing: .05em;
+            margin: 0;
+        }
+        svg {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        .draggable {
+            cursor: grab;
+            transition: filter 0.2s;
+            /* 預設狀態：在同一平面上的細微接縫陰影 */
+            filter: drop-shadow(0px 0px 2px rgba(0,0,0,0.4));
+        }
+        
+        /* 3. 新增：滑鼠懸停時的視覺提示 (僅在支援 hover 的設備上生效) */
+        @media (hover: hover) and (pointer: fine) {
+            .draggable:hover {
+                /* 陰影稍微擴大且變亮，營造微微浮起且準備互動的感覺 */
+                filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.3)) brightness(1.05);
+            }
+        }
+
+        .draggable:active, .draggable.dragging {
+            cursor: grabbing;
+            /* 提起時：陰影明顯加大，增強拿在半空中的立體空間感 */
+            filter: drop-shadow(3px 10px 15px rgba(0,0,0,0.5)) brightness(1.05) !important;
+        }
+        .animating {
+            transition: transform 0.2s ease-out, filter 0.2s;
+        }
+        
+        @keyframes popIn { 0%{transform:scale(.5);opacity:0} 100%{transform:scale(1);opacity:1} }
+        .pop-in { animation: popIn .3s cubic-bezier(.175,.885,.32,1.275) forwards; transform-origin: 0 0; }
+    </style>
+</head>
+<body class="h-screen flex flex-col items-center justify-center p-2 md:p-5">
+
+    <div class="w-full max-w-6xl flex flex-col h-full max-h-[900px]" style="gap: clamp(4px, 1vh, 12px);">
+        
+        <div class="w-full flex justify-between items-start mb-1 mt-2 flex-col md:flex-row gap-4 relative">
+            
+            <div class="hidden md:block md:w-[260px] lg:w-[280px]"></div>
+
+            <div class="flex-grow text-center flex items-center justify-center mt-6">
+                <!-- 1. 修改 H1 標題 -->
+                <h1 class="font-bold m-0" style="font-size: clamp(20px, 2.5vw, 30px); text-shadow: 1px 1px 2px rgba(0,0,0,.05); color: #4aabc4;">
+                    畢氏定理-不等邊直角三角形嵌板
+                </h1>
+            </div>
+
+            <div id="hint-panel" class="w-full md:w-[260px] lg:w-[280px] flex-shrink-0 p-3 sm:p-4 bg-[#f5fafb] rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.15)] border-2 border-white/60 mt-0">
+                <p style="color:#4aabc4; font-size:clamp(14px, 1.5vw, 15px); font-weight:bold; margin:0 0 8px; text-align:left;">💡 如何操作嵌板</p>
+                <div style="display:flex; align-items:flex-start; gap:8px; color:#4b5563; font-size:clamp(12px, 1.3vw, 14px); line-height:1.5; margin-bottom:5px; text-align:left;">
+                    <span style="flex-shrink:0; width:6px; height:6px; border-radius:50%; background:#4aabc4; margin-top:6px;"></span>
+                    <span>按住：可移動</span>
+                </div>
+                <div style="display:flex; align-items:flex-start; gap:8px; color:#4b5563; font-size:clamp(12px, 1.3vw, 14px); line-height:1.5; margin-bottom:5px; text-align:left;">
+                    <span style="flex-shrink:0; width:6px; height:6px; border-radius:50%; background:#4aabc4; margin-top:6px;"></span>
+                    <span>點擊一下：旋轉 90°</span>
+                </div>
+                <div style="display:flex; align-items:flex-start; gap:8px; color:#4b5563; font-size:clamp(12px, 1.3vw, 14px); line-height:1.5; text-align:left;">
+                    <span style="flex-shrink:0; width:6px; height:6px; border-radius:50%; background:#4aabc4; margin-top:6px;"></span>
+                    <span class="whitespace-nowrap">長按後畫圈：可360°自由旋轉</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="relative w-full flex-grow bg-[#7cb359] rounded-xl shadow-xl overflow-hidden flex items-center justify-center" style="min-height: 0;">
+            <svg id="canvas" viewBox="150 60 700 740" class="w-full h-full max-h-full">
+                <g id="static-layer"></g>
+                <g id="pieces-layer"></g>
+
+                <g id="rotate-ui-container" style="display:none" class="cursor-pointer">
+                    <g id="rotate-ui-offset">
+                        <g id="rotate-ui-anim">
+                            <circle cx="0" cy="0" r="45" fill="transparent"/>
+                            <circle cx="0" cy="0" r="24" fill="rgba(249,115,22,.75)" stroke="#fff" stroke-width="2" style="filter:drop-shadow(0 3px 5px rgba(0,0,0,.4))"/>
+                            <path d="M -2,-12 A 12,12 0 1,1 -12,-2" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+                            <polygon points="-12,-6 -17,2 -7,2" fill="#fff"/>
+                        </g>
+                    </g>
+                </g>
+            </svg>
+        </div>
+
+        <div class="flex-shrink-0 flex items-center justify-center mt-2 mb-2 w-full">
+            <button onclick="resetGame()" class="flex items-center justify-center gap-2 px-8 py-3 bg-[#4aabc4] hover:bg-[#3a9ab3] text-white font-bold rounded-xl shadow-[0_3px_12px_rgba(74,171,196,0.35)] transition-all duration-200 hover:-translate-y-[1px] active:scale-95" style="letter-spacing: .08em; border: none; font-family: inherit; font-size: clamp(14px,1.5vw,16px);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                    <path d="M3 3v5h5"></path>
+                </svg>
+                將所有嵌板歸位
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const staticLayer = document.getElementById('static-layer');
+        const piecesLayer = document.getElementById('pieces-layer');
+        const rotUI = document.getElementById('rotate-ui-container');
+        const rotOffset = document.getElementById('rotate-ui-offset');
+        const rotAnim = document.getElementById('rotate-ui-anim');
+
+        const HDL = {
+            triangle: { x: 0, y: 0 },
+            red: { x: 0, y: 0 },
+            yellow: { x: 0, y: 0 },
+            blue: { x: 0, y: 0 }
+        };
+
+        const u = 60; 
+        const A = { x: 350, y: 450 }; 
+        const B = { x: 350 + 5 * u, y: 450 }; 
+        const C = { x: 350 + 3.2 * u, y: 450 - 2.4 * u }; 
+
+        let snapPoints = [];
+        let initialPiecesState = [];
+        let pieces = [];
+        let pieceIdCounter = 0;
+
+        function generateData() {
+            snapPoints = [];
+            initialPiecesState = [];
+            pieceIdCounter = 0;
+
+            // 1. 紅色區域 (5x5)
+            for (let i = 0; i < 5; i++) {
+                for (let j = 0; j < 5; j++) {
+                    const cx = A.x + (i + 0.5) * u;
+                    const cy = A.y + (j + 0.5) * u;
+                    snapPoints.push({ x: cx, y: cy, rot: 0, type: 'slot' });
+                    initialPiecesState.push({ id: `p_red_${pieceIdCounter++}`, type: 'red', color: '#e64a38', startX: cx, startY: cy, startRot: 0 });
+                }
+            }
+
+            // 2. 黃色區域 (4x4)
+            const y_vec_u = { x: (C.x - A.x) / 4, y: (C.y - A.y) / 4 }; 
+            const y_vec_v = { x: -36, y: -48 }; 
+            const y_rot = -36.87; 
+
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    const cx = A.x + (i + 0.5) * y_vec_u.x + (j + 0.5) * y_vec_v.x;
+                    const cy = A.y + (i + 0.5) * y_vec_u.y + (j + 0.5) * y_vec_v.y;
+                    snapPoints.push({ x: cx, y: cy, rot: y_rot, type: 'slot' });
+                    initialPiecesState.push({ id: `p_yel_${pieceIdCounter++}`, type: 'yellow', color: '#ffe135', startX: cx, startY: cy, startRot: y_rot });
+                }
+            }
+
+            // 3. 藍色區域 (3x3)
+            const b_vec_u = { x: (B.x - C.x) / 3, y: (B.y - C.y) / 3 }; 
+            const b_vec_v = { x: 48, y: -36 };
+            const b_rot = 53.13;
+
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    const cx = C.x + (i + 0.5) * b_vec_u.x + (j + 0.5) * b_vec_v.x;
+                    const cy = C.y + (i + 0.5) * b_vec_u.y + (j + 0.5) * b_vec_v.y;
+                    snapPoints.push({ x: cx, y: cy, rot: b_rot, type: 'slot' });
+                    initialPiecesState.push({ id: `p_blu_${pieceIdCounter++}`, type: 'blue', color: '#2a4db3', startX: cx, startY: cy, startRot: b_rot });
+                }
+            }
+
+            // 0. 中央白色直角三角形 (2. 將其移至最後生成，確保在 SVG 渲染的最高層)
+            const triPivotX = A.x + 164;
+            const triPivotY = A.y - 48;
+            snapPoints.push({ x: triPivotX, y: triPivotY, rot: 0, type: 'tri_slot' });
+            initialPiecesState.push({ id: `p_white_tri`, type: 'triangle', color: '#ffffff', startX: triPivotX, startY: triPivotY, startRot: 0 });
+        }
+
+        function renderStatic() {
+            const seamlessPolygonPoints = "350,750 350,450 206,258 398,114 542,306 686,198 794,342 650,450 650,750";
+            let html = `<polygon points="${seamlessPolygonPoints}" fill="#ffffff" />`;
+            staticLayer.innerHTML = html;
+        }
+
+        function initGame() {
+            generateData();
+            renderStatic();
+            pieces = JSON.parse(JSON.stringify(initialPiecesState));
+            pieces.forEach(p => { p.x = p.startX; p.y = p.startY; p.rot = p.startRot; });
+            hideRotUI();
+            renderPieces();
+        }
+
+        function renderPieces() {
+            piecesLayer.innerHTML = '';
+            pieces.forEach(p => {
+                const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                g.setAttribute("id", p.id);
+                g.setAttribute("class", "draggable animating");
+                g.setAttribute("data-id", p.id);
+                
+                if (p.type === 'triangle') {
+                    g.innerHTML = `
+                        <polygon points="-164,48 136,48 28,-96" fill="${p.color}" />
+                        <circle cx="0" cy="0" r="5" fill="#cbd5e1" opacity="0.9" />
+                    `;
+                } else {
+                    let dotColor = '#1f2937'; 
+                    if (p.type === 'yellow') dotColor = '#ca8a04';
+                    else if (p.type === 'red') dotColor = '#7f1d1d';
+                    else if (p.type === 'blue') dotColor = '#1e3a8a';
+
+                    g.innerHTML = `
+                        <rect x="-29.5" y="-29.5" width="59" height="59" fill="${p.color}" rx="1" />
+                        <circle cx="0" cy="0" r="4" fill="${dotColor}" opacity="0.8" />
+                    `;
+                }
+
+                piecesLayer.appendChild(g);
+                updatePieceTransform(p, false);
+            });
+        }
+
+        function updatePieceTransform(piece, animate = false) {
+            const el = document.getElementById(piece.id);
+            if (!el) return;
+            if (animate) el.classList.add('animating');
+            else el.classList.remove('animating');
+            el.setAttribute('transform', `translate(${piece.x}, ${piece.y}) rotate(${piece.rot})`);
+        }
+
+        function showRotUI(p) {
+            const offset = HDL[p.type] || {x: 0, y: 0};
+            rotOffset.setAttribute('transform', `translate(${offset.x}, ${offset.y})`);
+            rotUI.style.display = '';
+            rotAnim.classList.remove('pop-in');
+            void rotAnim.offsetWidth; 
+            rotAnim.classList.add('pop-in');
+            moveRotUI(p);
+        }
+
+        function hideRotUI() {
+            rotUI.style.display = 'none';
+            rotHP = null;
+        }
+
+        function moveRotUI(p) {
+            rotUI.setAttribute('transform', `translate(${p.x}, ${p.y}) rotate(${p.rot})`);
+        }
+
+        let activePiece = null;
+        let startPointer = { x: 0, y: 0 };
+        let startCli = { x: 0, y: 0 };
+        let startPiecePos = { x: 0, y: 0 };
+        let hasMoved = false;
+        
+        let lpTimer = null;
+        let lpTriggered = false;
+        let rotating = false;
+        let rotHP = null;
+        let prevAngle = 0;
+        let rotated = false;
+
+        function getSvgCoords(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = 700 / rect.width;
+            const scaleY = 740 / rect.height;
+            return {
+                x: (clientX - rect.left) * scaleX + 150,
+                y: (clientY - rect.top) * scaleY + 60
+            };
+        }
+
+        function getClientPos(e) {
+            if (e.touches && e.touches.length > 0) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            else if (e.changedTouches && e.changedTouches.length > 0) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+            return { x: e.clientX, y: e.clientY };
+        }
+
+        canvas.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('#rotate-ui-container')) {
+                e.preventDefault();
+                canvas.setPointerCapture(e.pointerId);
+                rotating = true;
+                rotated = false;
+                activePiece = rotHP;
+                const c = getClientPos(e);
+                startCli = { ...c };
+                const sv = getSvgCoords(c.x, c.y);
+                prevAngle = Math.atan2(sv.y - activePiece.y, sv.x - activePiece.x) * 180 / Math.PI;
+                return;
+            }
+
+            const targetEl = e.target.closest('.draggable');
+            if (!targetEl) { hideRotUI(); return; }
+            
+            e.preventDefault();
+            canvas.setPointerCapture(e.pointerId);
+
+            activePiece = pieces.find(p => p.id === targetEl.getAttribute('data-id'));
+            if (!activePiece) return;
+
+            if (rotHP !== activePiece) hideRotUI();
+
+            targetEl.classList.remove('animating');
+            targetEl.classList.add('dragging');
+            piecesLayer.appendChild(targetEl);
+
+            const c = getClientPos(e);
+            startCli = { ...c };
+            startPointer = getSvgCoords(c.x, c.y);
+            startPiecePos = { x: activePiece.x, y: activePiece.y };
+            hasMoved = false;
+            lpTriggered = false;
+
+            lpTimer = setTimeout(() => {
+                if (hasMoved) return;
+                lpTriggered = true;
+                rotating = true;
+                rotHP = activePiece;
+                const sv = getSvgCoords(startCli.x, startCli.y);
+                prevAngle = Math.atan2(sv.y - activePiece.y, sv.x - activePiece.x) * 180 / Math.PI;
+                showRotUI(activePiece);
+                if (navigator.vibrate) navigator.vibrate(50);
+            }, 500);
+        });
+
+        canvas.addEventListener('pointermove', (e) => {
+            const c = getClientPos(e);
+            const dx = c.x - startCli.x;
+            const dy = c.y - startCli.y;
+
+            if (rotating && activePiece) {
+                e.preventDefault();
+                if (Math.abs(dx) > 5 || Math.abs(dy) > 5) rotated = true;
+                const sv = getSvgCoords(c.x, c.y);
+                const d2 = Math.sqrt((sv.x - activePiece.x)**2 + (sv.y - activePiece.y)**2);
+                if (d2 > 5) {
+                    const ca = Math.atan2(sv.y - activePiece.y, sv.x - activePiece.x) * 180 / Math.PI;
+                    let diff = ca - prevAngle;
+                    if (diff > 180) diff -= 360;
+                    else if (diff < -180) diff += 360;
+                    activePiece.rot += diff;
+                    prevAngle = ca;
+                    updatePieceTransform(activePiece, false);
+                    moveRotUI(activePiece);
+                }
+                return;
+            }
+
+            if (!activePiece) return;
+            e.preventDefault();
+
+            if (!hasMoved && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+                hasMoved = true;
+                if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; }
+                hideRotUI();
+            }
+
+            if (hasMoved && !lpTriggered) {
+                const sv = getSvgCoords(c.x, c.y);
+                activePiece.x = startPiecePos.x + (sv.x - startPointer.x);
+                activePiece.y = startPiecePos.y + (sv.y - startPointer.y);
+                updatePieceTransform(activePiece, false);
+            }
+        });
+
+        canvas.addEventListener('pointerup', (e) => {
+            if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; }
+
+            if (rotating) {
+                rotating = false;
+                canvas.releasePointerCapture(e.pointerId);
+                if (!rotated && !lpTriggered) hideRotUI();
+                else {
+                    checkSnap(activePiece);
+                    updatePieceTransform(activePiece, true);
+                    moveRotUI(activePiece);
+                }
+                activePiece = null;
+                return;
+            }
+
+            if (!activePiece) return;
+            canvas.releasePointerCapture(e.pointerId);
+
+            const targetEl = document.getElementById(activePiece.id);
+            if (targetEl) targetEl.classList.remove('dragging');
+
+            if (!hasMoved && !lpTriggered) {
+                if (rotHP === activePiece) {
+                    hideRotUI();
+                } else {
+                    activePiece.rot += 90; 
+                    checkSnap(activePiece); 
+                    updatePieceTransform(activePiece, true);
+                }
+            } else if (hasMoved) {
+                checkSnap(activePiece);
+                updatePieceTransform(activePiece, true);
+            }
+            
+            activePiece = null;
+        });
+
+        function checkSnap(piece) {
+            let closestPt = null;
+            let minDistance = Infinity;
+
+            for (const pt of snapPoints) {
+                if (piece.type === 'triangle' && pt.type !== 'tri_slot') continue;
+                if (piece.type !== 'triangle' && pt.type === 'tri_slot') continue;
+
+                const distance = Math.sqrt((piece.x - pt.x) ** 2 + (piece.y - pt.y) ** 2);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestPt = pt;
+                }
+            }
+
+            if (minDistance < 35 && closestPt) {
+                if (piece.type === 'triangle') {
+                    const nr = ((piece.rot % 360) + 360) % 360;
+                    let ad = Math.abs(nr - closestPt.rot);
+                    if (ad > 180) ad = 360 - ad;
+                    
+                    if (ad < 45) {
+                        piece.x = closestPt.x;
+                        piece.y = closestPt.y;
+                        let tr = closestPt.rot;
+                        while(tr - piece.rot > 180) tr -= 360;
+                        while(piece.rot - tr > 180) tr += 360;
+                        piece.rot = tr;
+                    }
+                } else {
+                    const isOccupied = pieces.some(p => 
+                        p.id !== piece.id && p.type !== 'triangle' &&
+                        Math.abs(p.x - closestPt.x) < 5 && 
+                        Math.abs(p.y - closestPt.y) < 5
+                    );
+
+                    if (!isOccupied) {
+                        piece.x = closestPt.x;
+                        piece.y = closestPt.y;
+                        const relRot = piece.rot - closestPt.rot;
+                        const snappedRelRot = Math.round(relRot / 90) * 90;
+                        piece.rot = closestPt.rot + snappedRelRot;
+                    }
+                }
+            }
+        }
+
+        window.resetGame = function() { 
+            initGame();
+        };
+
+        initGame();
+    </script>
+</body>
+</html>
