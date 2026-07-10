@@ -50,20 +50,21 @@
         .pop-in { animation: popIn .3s cubic-bezier(.175,.885,.32,1.275) forwards; transform-origin: 0 0; }
     </style>
 </head>
-<body class="h-screen flex flex-col items-center justify-center">
+<body class="h-screen flex flex-col items-center justify-center p-2 md:p-5">
 
-    <div class="w-full max-w-[1400px] p-2 md:p-5 flex flex-col items-center h-full max-h-[900px]" style="gap: clamp(4px, 1vh, 12px);">
+    <div class="w-full max-w-[1400px] flex flex-col h-full max-h-[900px]" style="gap: clamp(4px, 1vh, 12px);">
         
-        <div class="w-full flex items-start justify-between px-4 mb-2 flex-shrink-0">
-            <div class="w-[280px] hidden sm:block"></div>
+        <div class="w-full flex justify-between items-start mb-1 mt-2 flex-col md:flex-row gap-4 relative">
             
-            <div class="flex-shrink-0 text-center mt-6">
-                <h1 class="font-bold" style="font-size: clamp(20px, 2.5vw, 30px); text-shadow: 1px 1px 2px rgba(0,0,0,.05); color: #4aabc4;">
+            <div class="hidden md:block md:w-[260px] lg:w-[280px]"></div>
+            
+            <div class="flex-grow text-center flex items-center justify-center md:mt-6">
+                <h1 class="font-bold m-0" style="font-size: clamp(20px, 2.5vw, 30px); text-shadow: 1px 1px 2px rgba(0,0,0,.05); color: #4aabc4;">
                     畢氏定理-等腰直角三角形嵌板
                 </h1>
             </div>
 
-            <div id="hint-panel" class="z-10 flex flex-col w-[280px] p-3 sm:p-4 bg-[#f5fafb] rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.15)] border-2 border-white/60 pointer-events-none mt-0">
+            <div id="hint-panel" class="w-full md:w-[260px] lg:w-[280px] flex-shrink-0 p-3 sm:p-4 bg-[#f5fafb] rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.15)] border-2 border-white/60 mt-0 z-10 pointer-events-none">
                 <p style="color:#4aabc4; font-size:clamp(14px, 1.5vw, 15px); font-weight:bold; margin:0 0 8px; text-align:left;">💡 如何操作嵌板</p>
                 <div style="display:flex; align-items:flex-start; gap:8px; color:#4b5563; font-size:clamp(12px, 1.3vw, 14px); line-height:1.5; margin-bottom:5px; text-align:left;">
                     <span style="flex-shrink:0; width:6px; height:6px; border-radius:50%; background:#4aabc4; margin-top:6px;"></span>
@@ -75,7 +76,7 @@
                 </div>
                 <div style="display:flex; align-items:flex-start; gap:8px; color:#4b5563; font-size:clamp(12px, 1.3vw, 14px); line-height:1.5; text-align:left;">
                     <span style="flex-shrink:0; width:6px; height:6px; border-radius:50%; background:#4aabc4; margin-top:6px;"></span>
-                    <span>長按後畫圈：可360°自由旋轉</span>
+                    <span class="whitespace-nowrap">長按後畫圈：可360°自由旋轉</span>
                 </div>
             </div>
         </div>
@@ -83,7 +84,6 @@
         <div class="relative w-full flex-grow bg-[#7cb359] rounded-xl shadow-xl overflow-hidden flex items-center justify-center" style="min-height: 0;">
             
             <svg id="canvas" viewBox="200 25 1150 600" class="w-full h-full max-h-full">
-                
                 <defs>
                     <filter id="plate-3d" x="-10%" y="-10%" width="120%" height="120%">
                         <feOffset dx="1" dy="1" in="SourceAlpha" result="offAlpha1"/>
@@ -147,7 +147,6 @@
             redSquare: { x: 0, y: 0 }
         };
 
-        // 重新校正所有初始座標：左側+75，右側-75
         const initialPiecesState = [
             { id: 'L_Blue', type: 'square', color: '#2a4db3', startX: 350, startY: 325, startRot: 0 },
             { id: 'L_Yellow', type: 'square', color: '#ffeb4c', startX: 500, startY: 475, startRot: 0 },
@@ -164,7 +163,6 @@
             { id: 'R_White', type: 'tri', color: '#ffffff', startX: 1020, startY: 355, startRot: 0 },
         ];
 
-        // 重新校正所有吸附點：左側+75，右側-75
         const snapPoints = {
             tri: [
                 {x: 470, y: 355, rot: 0}, {x: 320, y: 355, rot: 0}, {x: 380, y: 295, rot: 180},
@@ -270,7 +268,6 @@
         let prevAngle = 0;
         let rotated = false;
 
-        // 同步更新 viewBox 基礎座標對應
         function getSvgCoords(clientX, clientY) {
             const rect = canvas.getBoundingClientRect();
             const scaleX = 1150 / rect.width;
